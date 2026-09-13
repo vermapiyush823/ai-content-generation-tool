@@ -6,7 +6,7 @@ import Channel from '@/models/Channel';
 import Series from '@/models/Series';
 import Scene from '@/models/Scene';
 import { getCurrentUser } from '@/lib/auth';
-import { generateStructured, trackUsage } from '@/lib/ai/client';
+import { generateStructured, trackUsage, NVIDIA_SCENE_MODEL } from '@/lib/ai/client';
 import { SCENE_SYSTEM_PROMPT, buildSceneBreakdownPrompt } from '@/lib/ai/prompts/scene';
 import { generateAllPrompts } from '@/lib/ai/adapters';
 
@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
       schema: scenesArraySchema,
       temperature: 0.6,
       maxTokens: 4096,
+      model: NVIDIA_SCENE_MODEL,
     });
 
     if (result.usage) {

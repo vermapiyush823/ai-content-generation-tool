@@ -1,8 +1,11 @@
 import { z } from 'zod/v4';
 
 const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY;
-const NVIDIA_MODEL = process.env.NVIDIA_MODEL || 'nvidia/llama-3.1-nemotron-70b-instruct';
+const NVIDIA_MODEL = process.env.NVIDIA_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b';
+const NVIDIA_SCENE_MODEL = process.env.NVIDIA_SCENE_MODEL || 'nv-mistralai/mistral-nemo-12b-instruct';
 const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
+
+export { NVIDIA_SCENE_MODEL };
 
 export class AIClientError extends Error {
   constructor(
@@ -25,6 +28,7 @@ interface AIGenerateOptions {
   temperature?: number;
   maxTokens?: number;
   topP?: number;
+  model?: string;
 }
 
 interface AIGenerateResponse {
@@ -51,7 +55,10 @@ export async function generateCompletion(
     );
   }
 
-  const { messages, temperature = 0.7, maxTokens = 4096, topP = 0.9 } = options;
+  const { messages, temperature = 0.7, maxTokens = 4096, topP = 0.9, model = NVIDIA_MODEL } = options;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
 
   const response = await fetch(`${NVIDIA_BASE_URL}/chat/completions`, {
     method: 'POST',
@@ -60,13 +67,16 @@ export async function generateCompletion(
       Authorization: `Bearer ${NVIDIA_API_KEY}`,
     },
     body: JSON.stringify({
-      model: NVIDIA_MODEL,
+      model,
       messages,
       temperature,
       max_tokens: maxTokens,
       top_p: topP,
     }),
+    signal: controller.signal,
   });
+
+  clearTimeout(timeoutId);
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
